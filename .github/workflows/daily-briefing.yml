@@ -1,0 +1,24 @@
+name: Daily Briefing Generator
+
+on:
+  schedule:
+    - cron: '0 11 * * *'  # 매일 20:00 KST (11:00 UTC)
+  workflow_dispatch:       # 수동 실행 버튼
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate daily briefing
+        run: |
+          curl -s -X GET https://clodeeco.vercel.app/api/generate \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}" \
+            | tee result.json
+
+          if grep -q '"ok":true' result.json; then
+            echo "✅ 브리핑 생성 성공"
+          else
+            echo "❌ 브리핑 생성 실패"
+            exit 1
+          fi
