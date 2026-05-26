@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
+    "@supabase/supabase-js": "^2.106.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.3"
+  }
+}

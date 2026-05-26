@@ -1,19 +1,18 @@
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import type { DailyBriefing } from '@/lib/types';
 import SentimentBadge from '@/components/SentimentBadge';
 import NewsCard from '@/components/NewsCard';
 import QuoteCard from '@/components/QuoteCard';
-import EmptyState from '@/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
 
-async function getTodayBriefing(): Promise<DailyBriefing | null> {
-  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
-
+async function getBriefingByDate(date: string): Promise<DailyBriefing | null> {
   const { data, error } = await supabase
     .from('daily_briefings')
     .select(`*, news_articles (*), investor_quotes (*)`)
-    .eq('date', today)
+    .eq('date', date)
     .single();
 
   if (error || !data) return null;
@@ -29,30 +28,30 @@ function formatDate(dateStr: string) {
   });
 }
 
-export default async function HomePage() {
-  const briefing = await getTodayBriefing();
+interface Props {
+  params: Promise<{ date: string }>;
+}
 
-  if (!briefing) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="mb-8">
-          <p className="text-sm text-slate-500">{formatDate(new Date().toISOString())}</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-100">오늘의 경제 브리핑</h1>
-        </div>
-        <EmptyState
-          title="오늘의 브리핑이 아직 준비되지 않았습니다"
-          description="npm run generate 를 실행하면 AI가 뉴스를 분석하고 브리핑을 생성합니다."
-        />
-      </div>
-    );
-  }
+export default async function ArchiveDetailPage({ params }: Props) {
+  const { date } = await params;
+  const briefing = await getBriefingByDate(date);
+
+  if (!briefing) notFound();
 
   const news = briefing.news_articles ?? [];
   const quotes = briefing.investor_quotes ?? [];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      {/* Header */}
+      <div className="mb-6">
+        <Link
+          href="/archive"
+          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          ← 아카이브 목록
+        </Link>
+      </div>
+
       <div className="mb-10">
         <p className="text-sm font-medium text-slate-500">{formatDate(briefing.date)}</p>
         <h1 className="mt-2 text-3xl font-bold leading-tight text-slate-100 sm:text-4xl">
@@ -64,7 +63,6 @@ export default async function HomePage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Left column */}
         <div className="space-y-6 lg:col-span-1">
           <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -96,23 +94,15 @@ export default async function HomePage() {
           )}
         </div>
 
-        {/* Right column — News */}
         <div className="lg:col-span-2">
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
             주요 뉴스 {news.length > 0 && `(${news.length}건)`}
           </h2>
-          {news.length === 0 ? (
-            <EmptyState
-              title="뉴스가 없습니다"
-              description="브리핑에 뉴스가 포함되지 않았습니다."
-            />
-          ) : (
-            <div className="space-y-3">
-              {news.map((article, i) => (
-                <NewsCard key={article.id} article={article} index={i} />
-              ))}
-            </div>
-          )}
+          <div className="space-y-3">
+            {news.map((article, i) => (
+              <NewsCard key={article.id} article={article} index={i} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
